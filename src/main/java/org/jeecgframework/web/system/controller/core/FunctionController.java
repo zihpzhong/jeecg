@@ -28,6 +28,7 @@ import org.jeecgframework.web.system.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
@@ -71,17 +72,17 @@ public class FunctionController extends BaseController {
 	public void setUserService(UserService userService) {
 		this.userService = userService;
 	}
-
+	
 	/**
 	 * 权限列表页面跳转
 	 * 
 	 * @return
 	 */
 	@RequestMapping(params = "function")
-	public ModelAndView function() {
+	public ModelAndView function(ModelMap model) {
 		return new ModelAndView("system/function/functionList");
 	}
-
+	
 	/**
 	 * 操作列表页面跳转
 	 * 
@@ -89,7 +90,11 @@ public class FunctionController extends BaseController {
 	 */
 	@RequestMapping(params = "operation")
 	public ModelAndView operation(HttpServletRequest request, String functionId) {
+		// ----------------------------------------------------------------
+		// ----------------------------------------------------------------
 		request.setAttribute("functionId", functionId);
+		// ----------------------------------------------------------------
+		// ----------------------------------------------------------------
 		return new ModelAndView("system/operation/operationList");
 	}
 
@@ -101,7 +106,11 @@ public class FunctionController extends BaseController {
 	@RequestMapping(params = "dataRule")
 	public ModelAndView operationData(HttpServletRequest request,
 			String functionId) {
+		// ----------------------------------------------------------------
+		// ----------------------------------------------------------------
 		request.setAttribute("functionId", functionId);
+		// ----------------------------------------------------------------
+		// ----------------------------------------------------------------
 		return new ModelAndView("system/dataRule/ruleDataList");
 	}
 
@@ -133,10 +142,14 @@ public class FunctionController extends BaseController {
 	public void opdategrid(HttpServletRequest request,
 			HttpServletResponse response, DataGrid dataGrid) {
 		CriteriaQuery cq = new CriteriaQuery(TSOperation.class, dataGrid);
+		// ----------------------------------------------------------------
+		// ----------------------------------------------------------------
 		String functionId = oConvertUtils.getString(request
 				.getParameter("functionId"));
 		cq.eq("TSFunction.id", functionId);
 		cq.add();
+		// ----------------------------------------------------------------
+		// ----------------------------------------------------------------
 		this.systemService.getDataGridReturn(cq, true);
 		TagUtil.datagrid(response, dataGrid);
 	}
@@ -157,14 +170,14 @@ public class FunctionController extends BaseController {
 		systemService
 				.updateBySqlString("delete from t_s_role_function where functionid='"
 						+ function.getId() + "'");
-
+		//update-begin--Author:张忠亮  Date:20150605 for：删除时，提示先删除页面权限和数据规则
 		try{
 			systemService.delete(function);
 		}catch (Exception e){
 			e.printStackTrace();
 			message=MutiLangUtil.getMutiLangInstance().getLang("common.menu.del.fail");
 		}
-
+		//update-end--Author:张忠亮  Date:20150605 for：删除时，提示先删除页面权限和数据规则
 		systemService.addLog(message, Globals.Log_Type_DEL,
 				Globals.Log_Leavel_INFO);
 
@@ -254,6 +267,7 @@ public class FunctionController extends BaseController {
 	public AjaxJson saveFunction(TSFunction function, HttpServletRequest request) {
 		String message = null;
 		AjaxJson j = new AjaxJson();
+		// ----------------------------------------------------------------
 		function.setFunctionUrl(function.getFunctionUrl().trim());
 		String functionOrder = function.getFunctionOrder();
 		if (StringUtils.isEmpty(functionOrder)) {
@@ -264,19 +278,21 @@ public class FunctionController extends BaseController {
 		} else {
 			TSFunction parent = systemService.getEntity(TSFunction.class,
 					function.getTSFunction().getId());
-			function.setFunctionLevel(Short.valueOf(parent.getFunctionLevel()
-					+ 1 + ""));
+			function.setFunctionLevel(Short.valueOf(parent.getFunctionLevel()+ 1 + ""));
 		}
 		if (StringUtil.isNotEmpty(function.getId())) {
 			message = MutiLangUtil.paramUpdSuccess("common.menu");
 			userService.saveOrUpdate(function);
-			systemService.addLog(message, Globals.Log_Type_UPDATE,
-					Globals.Log_Leavel_INFO);
-
+			systemService.addLog(message, Globals.Log_Type_UPDATE,Globals.Log_Leavel_INFO);
+			// update-end--Author:anchao Date:20140914 for：Jeecg bug 20140914 菜单更新级别后显示混乱
 			List<TSFunction> subFunction = systemService.findByProperty(TSFunction.class, "TSFunction.id", function.getId());
 			updateSubFunction(subFunction,function);
+			// update-end--Author:anchao Date:20140914 for：Jeecg bug 20140914 菜单更新级别后显示混乱
+			// ----------------------------------------------------------------
 
 			systemService.flushRoleFunciton(function.getId(), function);
+
+			// ----------------------------------------------------------------
 
 		} else {
 			if (function.getFunctionLevel().equals(Globals.Function_Leave_ONE)) {
@@ -296,8 +312,7 @@ public class FunctionController extends BaseController {
 			}
 			message = MutiLangUtil.paramAddSuccess("common.menu");
 			systemService.save(function);
-			systemService.addLog(message, Globals.Log_Type_INSERT,
-					Globals.Log_Leavel_INFO);
+			systemService.addLog(message, Globals.Log_Type_INSERT,Globals.Log_Leavel_INFO);
 		}
 
 		j.setMsg(message);
@@ -343,10 +358,9 @@ public class FunctionController extends BaseController {
 	@RequestMapping(params = "addorupdate")
 	public ModelAndView addorupdate(TSFunction function, HttpServletRequest req) {
 		String functionid = req.getParameter("id");
-		List<TSFunction> fuinctionlist = systemService
-				.getList(TSFunction.class);
+		List<TSFunction> fuinctionlist = systemService.getList(TSFunction.class);
 		req.setAttribute("flist", fuinctionlist);
-
+		// update-begin--Author:zhangguoming Date:20140509 for：添加云桌面图标管理
 		// List<TSIcon> iconlist = systemService.getList(TSIcon.class);
 		List<TSIcon> iconlist = systemService
 				.findByQueryString("from TSIcon where iconType != 3");
@@ -354,7 +368,7 @@ public class FunctionController extends BaseController {
 		List<TSIcon> iconDeskList = systemService
 				.findByQueryString("from TSIcon where iconType = 3");
 		req.setAttribute("iconDeskList", iconDeskList);
-
+		// update-end--Author:zhangguoming Date:20140509 for：添加云桌面图标管理
 		if (functionid != null) {
 			function = systemService.getEntity(TSFunction.class, functionid);
 			req.setAttribute("function", function);
@@ -368,7 +382,7 @@ public class FunctionController extends BaseController {
 		}
 		return new ModelAndView("system/function/function");
 	}
-
+	
 	/**
 	 * 操作列表页面跳转
 	 * 
@@ -395,8 +409,7 @@ public class FunctionController extends BaseController {
 	 */
 	@RequestMapping(params = "functionGrid")
 	@ResponseBody
-	public List<TreeGrid> functionGrid(HttpServletRequest request,
-			TreeGrid treegrid) {
+	public List<TreeGrid> functionGrid(HttpServletRequest request,TreeGrid treegrid,Integer type) {
 		CriteriaQuery cq = new CriteriaQuery(TSFunction.class);
 		String selfId = request.getParameter("selfId");
 		if (selfId != null) {
@@ -408,18 +421,22 @@ public class FunctionController extends BaseController {
 		if (treegrid.getId() == null) {
 			cq.isNull("TSFunction");
 		}
+		if(type != null){
+			cq.eq("functionType", type.shortValue());
+		}
 		cq.addOrder("functionOrder", SortDirection.asc);
 		cq.add();
 
+		//update--begin------author:scott--------------date:20151208-----------for:手工加载数据权限条件--------
 		//获取装载数据权限的条件HQL
 		cq = HqlGenerateUtil.getDataAuthorConditionHql(cq, new TSFunction());
 		cq.add();
-
+		//update--end------author:scott--------------date:20151208-----------for:手工加载数据权限条件--------
 		
 		List<TSFunction> functionList = systemService.getListByCriteriaQuery(cq, false);
-
+//        update-start-Author:zhangguoming  Date:20140914 for：菜单管理页面：菜单排序
         Collections.sort(functionList, new NumberComparator());
-
+//        update-end-Author:zhangguoming  Date:20140914 for：菜单管理页面：菜单排序
         List<TreeGrid> treeGrids = new ArrayList<TreeGrid>();
 		TreeGridModel treeGridModel = new TreeGridModel();
 		treeGridModel.setIcon("TSIcon_iconPath");
@@ -431,6 +448,9 @@ public class FunctionController extends BaseController {
 		treeGridModel.setChildList("TSFunctions");
 		// 添加排序字段
 		treeGridModel.setOrder("functionOrder");
+	    //        update-begin--Author:chenj  Date:20160722 for：添加菜单图标样式
+		treeGridModel.setIconStyle("functionIconStyle");
+	    //        update-end--Author:chenj  Date:20160722 for：添加菜单图标样式
 
 		treeGridModel.setFunctionType("functionType");
 
@@ -479,17 +499,15 @@ public class FunctionController extends BaseController {
 			cq.isNull("TSFunction");
 		}
 		cq.add();
-		List<TSFunction> functionList = systemService.getListByCriteriaQuery(
-				cq, false);
+		List<TSFunction> functionList = systemService.getListByCriteriaQuery(cq, false);
 		List<ComboTree> comboTrees = new ArrayList<ComboTree>();
-		ComboTreeModel comboTreeModel = new ComboTreeModel("id",
-				"functionName", "TSFunctions");
-		comboTrees = systemService.ComboTree(functionList, comboTreeModel,
-				null, false);
+		ComboTreeModel comboTreeModel = new ComboTreeModel("id","functionName", "TSFunctions");
+		comboTrees = systemService.ComboTree(functionList, comboTreeModel,null, false);
 		MutiLangUtil.setMutiTree(comboTrees);
 		return comboTrees;
 	}
 
+	// update-end--Author:gaofeng Date:20140619 for：修改云桌面的搜索功能中的系统中应用内搜索
 	/**
 	 * 菜单模糊检索功能
 	 * 
@@ -553,10 +571,12 @@ public class FunctionController extends BaseController {
 			menuListMap = menuListMap + "很遗憾，在系统中没有检索到与“" + name + "”相关的信息！";
 		}
 		// menuListMap = menuListMap + "</div>";
+		//System.out.println("-------------------------------" + menuListMap);
 		req.setAttribute("menuListMap", menuListMap);
 		return new ModelAndView("system/function/menuAppList");
 	}
 
+	// update-end--Author:gaofeng Date:20140619 for：修改云桌面的搜索功能中的系统中应用内搜索
 
 	/**
 	 * 
